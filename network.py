@@ -28,8 +28,9 @@ class CodeCloud(Module):
         """
         batch_codes_position = self.codes_position[indices]
         batch_codes = self.codes[indices]
-        square_dist = (query_points.unsqueeze(2) - batch_codes_position.unsqueeze(1)).pow(2).sum(dim=-1) + 1e-16
-        weight = 1.0 / (square_dist.sqrt() ** 3)
+        with jt.flag_scope(compile_options={'max_parallel_depth': 3}):
+            square_dist = (query_points.unsqueeze(2) - batch_codes_position.unsqueeze(1)).pow(2.0).sum(dim=-1) + 1e-16
+        weight = 1.0 / (square_dist.sqrt() * square_dist)
         weight = weight / weight.sum(dim=-1, keepdims=True)
         query_codes = jt.matmul(weight, batch_codes)
         return query_codes, square_dist, weight
